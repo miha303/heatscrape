@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: scraper
+  cloud:
+    zookeeper:
+      connect-string: localhost:2181
+
+scraper:
+  delay: 1000
+  interval: 60000
+
+
+
+logging:
+  level:
+    root: INFO
+    org.apache.zookeeper.ClientCnxn: WARN

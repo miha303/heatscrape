@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: data-provider-service
+  cloud:
+    zookeeper:
+      connect-string: localhost:2181
+      discovery:
+        enabled: true
+
+server:
+  port: 8889
+
+endpoints:
+  restart:
+    enabled: true
+
+boiler:
+  address: 192.168.1.6
+  port: 80
+
+logging:
+  level:
+    root: INFO
+    org.apache.zookeeper.ClientCnxn: WARN

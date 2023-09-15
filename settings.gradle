@@ -1,0 +1,16 @@
+rootProject.name = 'heatscrape'
+
+dependencyResolutionManagement {
+    versionCatalogs {
+        libs {
+            version('opentelemetry-javaagent', '1.29.0')
+
+            library('opentelemetry-javaagent', 'io.opentelemetry.javaagent', 'opentelemetry-javaagent').versionRef('opentelemetry-javaagent')
+        }
+    }
+}
+
+include 'heatscrape-api'
+include 'metric-service'
+include 'data-provider-service'
+include 'scraper'

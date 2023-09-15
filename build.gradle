@@ -1,0 +1,58 @@
+plugins {
+    id 'java'
+    id 'io.spring.dependency-management' version '1.1.3'
+    id 'com.diffplug.spotless' version '6.21.0'
+    id 'net.ltgt.errorprone' version '3.1.0'
+}
+
+allprojects {
+    repositories {
+        mavenCentral()
+    }
+
+    apply plugin: 'net.ltgt.errorprone'
+    dependencies {
+        errorprone("com.google.errorprone:error_prone_core:2.21.1")
+    }
+
+    apply plugin: 'io.spring.dependency-management'
+
+    group = 'com.github.miha303'
+    sourceCompatibility = '17'
+    targetCompatibility = '17'
+
+    apply plugin: 'com.diffplug.spotless'
+    spotless {
+        java {
+            importOrder()
+            removeUnusedImports()
+            trimTrailingWhitespace()
+            endWithNewline()
+            licenseHeaderFile "${rootDir}/gradle/spotless.java.license"
+            googleJavaFormat('1.17.0').aosp()
+        }
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        runtimeOnly libs.opentelemetry.javaagent
+    }
+
+    tasks.named('test') {
+        useJUnitPlatform()
+    }
+
+    test {
+        testLogging {
+            events "passed", "skipped", "failed", "standardOut", "standardError"
+        }
+    }
+}
+

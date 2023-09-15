@@ -1,0 +1,9 @@
+spring:
+  cloud:
+    zookeeper:
+      enabled: false
+      discovery:
+        enabled: false
+logging:
+  level:
+    root: ERROR

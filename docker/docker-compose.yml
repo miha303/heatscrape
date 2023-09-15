@@ -1,0 +1,74 @@
+version: "2.4"
+
+services:
+  
+  zookeeper:
+    image: bitnami/zookeeper:3.9.0
+    container_name: zookeeper
+    hostname: zookeeper
+    restart: unless-stopped
+    user: root
+    volumes:
+      - ./data/zookeeper:/bitnami/zookeeper
+    environment:
+      - ZOO_SERVER_ID=1
+      - ALLOW_ANONYMOUS_LOGIN=yes
+      - ZOO_AUTOPURGE_INTERVAL=1
+    networks:
+      - app-tier
+
+  metric-service:
+    image: com.github.miha303/metric-service:0.0.1-snapshot
+    container_name: metric-service
+    hostname: metric-service
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    ports:
+      - 8888:8888
+    mem_limit: 256MB
+    environment:
+      - SPRING_CLOUD_ZOOKEEPER_CONNECT-STRING=192.168.1.4:2181
+      - OTEL_JAVAAGENT_ENABLED=false
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=metric-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://192.168.1.4:4317
+    networks:
+      - app-tier
+
+  data-provider-service:
+    image: com.github.miha303/data-provider-service:0.0.1-snapshot
+    container_name: data-provider-service
+    hostname: data-provider-service
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    mem_limit: 256MB
+    environment:
+      - SPRING_CLOUD_ZOOKEEPER_CONNECT-STRING=192.168.1.4:2181
+      - OTEL_JAVAAGENT_ENABLED=false
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=data-provider-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://192.168.1.4:4317
+    networks:
+      - app-tier
+
+  scraper:
+    image: com.github.miha303/scraper:0.0.1-snapshot
+    container_name: scraper
+    hostname: scraper
+    restart: unless-stopped
+    depends_on:
+      - data-provider-service
+      - metric-service
+    mem_limit: 256MB
+    environment:
+      - SPRING_CLOUD_ZOOKEEPER_CONNECT-STRING=192.168.1.4:2181
+      - OTEL_JAVAAGENT_ENABLED=false
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=scraper
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://192.168.1.4:4317
+    networks:
+      - app-tier
+
+networks:
+    app-tier:
+        name: app-tier
+        driver: bridge
