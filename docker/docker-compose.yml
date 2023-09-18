@@ -18,7 +18,7 @@ services:
       - app-tier
 
   metric-service:
-    image: com.github.miha303/metric-service:0.0.1-snapshot
+    image: com.github.miha303/metric-service:latest
     container_name: metric-service
     hostname: metric-service
     restart: unless-stopped
@@ -28,7 +28,7 @@ services:
       - 8888:8888
     mem_limit: 256MB
     environment:
-      - SPRING_CLOUD_ZOOKEEPER_CONNECT-STRING=192.168.1.4:2181
+      - SPRING_CLOUD_ZOOKEEPER_CONNECT-STRING=zookeeper:2181
       - OTEL_JAVAAGENT_ENABLED=false
       - OTEL_RESOURCE_ATTRIBUTES=service.name=metric-service
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://192.168.1.4:4317
@@ -36,7 +36,7 @@ services:
       - app-tier
 
   data-provider-service:
-    image: com.github.miha303/data-provider-service:0.0.1-snapshot
+    image: com.github.miha303/data-provider-service:latest
     container_name: data-provider-service
     hostname: data-provider-service
     restart: unless-stopped
@@ -44,7 +44,7 @@ services:
       - zookeeper
     mem_limit: 256MB
     environment:
-      - SPRING_CLOUD_ZOOKEEPER_CONNECT-STRING=192.168.1.4:2181
+      - SPRING_CLOUD_ZOOKEEPER_CONNECT-STRING=zookeeper:2181
       - OTEL_JAVAAGENT_ENABLED=false
       - OTEL_RESOURCE_ATTRIBUTES=service.name=data-provider-service
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://192.168.1.4:4317
@@ -52,7 +52,7 @@ services:
       - app-tier
 
   scraper:
-    image: com.github.miha303/scraper:0.0.1-snapshot
+    image: com.github.miha303/scraper:latest
     container_name: scraper
     hostname: scraper
     restart: unless-stopped
@@ -61,7 +61,7 @@ services:
       - metric-service
     mem_limit: 256MB
     environment:
-      - SPRING_CLOUD_ZOOKEEPER_CONNECT-STRING=192.168.1.4:2181
+      - SPRING_CLOUD_ZOOKEEPER_CONNECT-STRING=zookeeper:2181
       - OTEL_JAVAAGENT_ENABLED=false
       - OTEL_RESOURCE_ATTRIBUTES=service.name=scraper
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://192.168.1.4:4317
