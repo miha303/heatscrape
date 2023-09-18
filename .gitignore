@@ -1,6 +1,6 @@
 */bin/*
 bin/
-
+*/build/*
 *.class
 
 # Package Files #

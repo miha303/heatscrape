@@ -1,3 +1,5 @@
+import java.text.SimpleDateFormat
+
 plugins {
     id 'java'
     id 'io.spring.dependency-management' version '1.1.3'
@@ -42,7 +44,7 @@ subprojects {
     }
 
     dependencies {
-        runtimeOnly libs.opentelemetry.javaagent
+        compileOnly libs.opentelemetry.javaagent
     }
 
     tasks.named('test') {
@@ -54,5 +56,104 @@ subprojects {
             events "passed", "skipped", "failed", "standardOut", "standardError"
         }
     }
+
+    tasks.register('distDocker', DistDocker) {
+        doLast {
+            if (createDocker.get()) {
+                def dockerBuildDir = "$buildDir/docker/"
+                def bootJarFilename = "${bootJar.archiveFileName.get()}"
+                def otJarFilename = "opentelemetry-javaagent-${libs.versions.opentelemetry.javaagent.get()}.jar"
+                def expose = ''
+                exposedPorts.get().split(',').each {
+                    if(it) expose += 'EXPOSE ' + it + '\n'
+                }
+
+                copy {
+                    from(project.configurations.compileClasspath)
+                    into("$buildDir/docker")
+                    include otJarFilename
+
+                }
+                copy {
+                    from file("${rootDir}/docker/Dockerfile")
+                    into(dockerBuildDir)
+                    filter { line -> line.replaceAll('#JAR_NAME#', bootJarFilename) }
+                    filter { line -> line.replaceAll('#OPEN_TELEMETRY_JAR#', otJarFilename) }
+                    filter { line -> line.replaceAll('#EXPOSE_PORT#', expose) }
+                }
+                copy {
+                    from file("$buildDir/libs/${bootJarFilename}")
+                    into(dockerBuildDir)
+                }
+                def image = "${project.group}/${project.name}:${calculateVersion(project.version)}"
+                exec {
+                    executable "sh"
+                    workingDir dockerBuildDir
+                    args "-c", "docker build --build-arg BUILD_DATE=${buildTime()} --build-arg VERSION=${project.version} --build-arg VCS_REF=${getCheckedOutGitCommitHash()} -t ${image} ."
+                }
+                exec {
+                    executable "sh"
+                    workingDir dockerBuildDir
+                    args "-c", "docker tag ${image} ${project.group}/${project.name}"
+                }
+            }
+
+        }
+    }
 }
 
+abstract class DistDocker extends DefaultTask {
+    @Input
+    abstract Property<String> getExposedPorts()
+    @Input
+    abstract Property<Boolean> getCreateDocker()
+
+    DistDocker() {
+        exposedPorts.convention('')
+        createDocker.convention(false)
+        if(!project.getTasksByName('bootJar', false).isEmpty()) {
+            dependsOn('bootJar')
+        }
+    }
+}
+
+static def buildTime() {
+    def df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'")
+    df.setTimeZone(TimeZone.getTimeZone("UTC"))
+    return df.format(new Date())
+}
+
+def calculateVersion(version) {
+    if (version.endsWith("-SNAPSHOT")) {
+        version = version.replace("-SNAPSHOT", "-dev-" + getCheckedOutGitCommitHash())
+    }
+    return version
+}
+
+def getCheckedOutGitCommitHash(length = 8) {
+    try {
+        def gitFolder = "$projectDir/.git/"
+        if (!file(gitFolder).isDirectory()) {
+            // We are in a submodule.  The file's contents are `gitdir: <gitFolder>\n`.
+            // Read the file, cut off the front, and trim the whitespace.
+            gitFolder = file(gitFolder).text.substring(length).trim() + "/"
+        }
+        def takeFromHash = length
+        /*
+         * '.git/HEAD' contains either
+         *      in case of detached head: the currently checked out commit hash
+         *      otherwise: a reference to a file containing the current commit hash
+         */
+        def head = new File(gitFolder + "HEAD").text.split(":") // .git/HEAD
+        def isCommit = head.length == 1 // e5a7c79edabbf7dd39888442df081b1c9d8e88fd
+
+        if (isCommit) return head[0].trim().take(takeFromHash) // e5a7c79edabb
+
+        def refHead = new File(gitFolder + head[1].trim()) // .git/refs/heads/master
+        refHead.text.trim().take takeFromHash
+    } catch (Exception e) {
+        logger.warn('Could not calculate git commit, using "xxxxxxxx" (run with --info for stacktrace)')
+        logger.info('Error retrieving git commit', e)
+        return "xxxxxxxx"
+    }
+}
