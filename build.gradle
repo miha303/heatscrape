@@ -76,15 +76,21 @@ subprojects {
 
                 }
                 copy {
-                    from file("${rootDir}/docker/Dockerfile")
+                    from file("${rootDir}/docker/Dockerfile.template")
                     into(dockerBuildDir)
                     filter { line -> line.replaceAll('#JAR_NAME#', bootJarFilename) }
                     filter { line -> line.replaceAll('#OPEN_TELEMETRY_JAR#', otJarFilename) }
                     filter { line -> line.replaceAll('#EXPOSE_PORT#', expose) }
+                    rename("Dockerfile.template", "Dockerfile")
                 }
                 copy {
                     from file("$buildDir/libs/${bootJarFilename}")
                     into(dockerBuildDir)
+                }
+                copy {
+                    from file("${rootDir}/docker/HealthCheck.jxxx")
+                    into(dockerBuildDir)
+                    rename("HealthCheck.jxxx", "HealthCheck.java")
                 }
                 def image = "${project.group}/${project.name}:${calculateVersion(project.version)}"
                 exec {

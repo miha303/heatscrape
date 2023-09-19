@@ -6,6 +6,7 @@ plugins {
 dependencies {
 	implementation project(path: ':heatscrape-api')
 	implementation 'org.springframework.boot:spring-boot-starter:3.1.3'
+	implementation 'org.springframework.boot:spring-boot-starter-web:3.1.3'
 	implementation 'org.springframework.cloud:spring-cloud-starter-zookeeper-discovery:4.0.1'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator:3.1.3'
 	implementation 'org.springframework.cloud:spring-cloud-starter-feign:1.4.7.RELEASE'

@@ -9,7 +9,9 @@ scraper:
   delay: 1000
   interval: 60000
 
-
+management:
+  server:
+    port: 8080
 
 logging:
   level:
