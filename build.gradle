@@ -92,10 +92,12 @@ subprojects {
                     workingDir dockerBuildDir
                     args "-c", "docker build --build-arg BUILD_DATE=${buildTime()} --build-arg VERSION=${project.version} --build-arg VCS_REF=${getCheckedOutGitCommitHash()} -t ${image} ."
                 }
-                exec {
-                    executable "sh"
-                    workingDir dockerBuildDir
-                    args "-c", "docker tag ${image} ${project.group}/${project.name}"
+                if(!isSnapshot(project.version)) {
+                    exec {
+                        executable "sh"
+                        workingDir dockerBuildDir
+                        args "-c", "docker tag ${image} ${project.group}/${project.name}"
+                    }
                 }
             }
 
@@ -124,8 +126,12 @@ static def buildTime() {
     return df.format(new Date())
 }
 
+static def isSnapshot(version) {
+    return version.endsWith("-SNAPSHOT");
+}
+
 def calculateVersion(version) {
-    if (version.endsWith("-SNAPSHOT")) {
+    if (isSnapshot(version)) {
         version = version.replace("-SNAPSHOT", "-dev-" + getCheckedOutGitCommitHash())
     }
     return version
