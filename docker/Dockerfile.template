@@ -3,5 +3,7 @@ LABEL maintainer=miha
 WORKDIR /app
 COPY #JAR_NAME# ./
 COPY #OPEN_TELEMETRY_JAR# ./
+COPY HealthCheck.java ./
 ENTRYPOINT ["java", "-javaagent:#OPEN_TELEMETRY_JAR#", "-jar", "#JAR_NAME#"]
 #EXPOSE_PORT#
+HEALTHCHECK --interval=30s --timeout=3s --retries=5 CMD ["java", "HealthCheck.java", "||", "exit", "1"]

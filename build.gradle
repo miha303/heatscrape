@@ -76,15 +76,21 @@ subprojects {
 
                 }
                 copy {
-                    from file("${rootDir}/docker/Dockerfile")
+                    from file("${rootDir}/docker/Dockerfile.template")
                     into(dockerBuildDir)
                     filter { line -> line.replaceAll('#JAR_NAME#', bootJarFilename) }
                     filter { line -> line.replaceAll('#OPEN_TELEMETRY_JAR#', otJarFilename) }
                     filter { line -> line.replaceAll('#EXPOSE_PORT#', expose) }
+                    rename("Dockerfile.template", "Dockerfile")
                 }
                 copy {
                     from file("$buildDir/libs/${bootJarFilename}")
                     into(dockerBuildDir)
+                }
+                copy {
+                    from file("${rootDir}/docker/HealthCheck.jxxx")
+                    into(dockerBuildDir)
+                    rename("HealthCheck.jxxx", "HealthCheck.java")
                 }
                 def image = "${project.group}/${project.name}:${calculateVersion(project.version)}"
                 exec {
@@ -92,10 +98,12 @@ subprojects {
                     workingDir dockerBuildDir
                     args "-c", "docker build --build-arg BUILD_DATE=${buildTime()} --build-arg VERSION=${project.version} --build-arg VCS_REF=${getCheckedOutGitCommitHash()} -t ${image} ."
                 }
-                exec {
-                    executable "sh"
-                    workingDir dockerBuildDir
-                    args "-c", "docker tag ${image} ${project.group}/${project.name}"
+                if(!isSnapshot(project.version)) {
+                    exec {
+                        executable "sh"
+                        workingDir dockerBuildDir
+                        args "-c", "docker tag ${image} ${project.group}/${project.name}"
+                    }
                 }
             }
 
@@ -124,8 +132,12 @@ static def buildTime() {
     return df.format(new Date())
 }
 
+static def isSnapshot(version) {
+    return version.endsWith("-SNAPSHOT");
+}
+
 def calculateVersion(version) {
-    if (version.endsWith("-SNAPSHOT")) {
+    if (isSnapshot(version)) {
         version = version.replace("-SNAPSHOT", "-dev-" + getCheckedOutGitCommitHash())
     }
     return version
